@@ -1,0 +1,15 @@
+{
+  "name": "Math Quiz DELIMa",
+  "short_name": "MathQuiz",
+  "start_url": "NeoMaths11.html",
+  "display": "standalone",
+  "background_color": "#6200ea",
+  "theme_color": "#6200ea",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/5351/5351486.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

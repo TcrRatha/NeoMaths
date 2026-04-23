@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<link rel="manifest" href="manifest.json">
+<script>
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
+<link rel="manifest" href="manifest.json">
+<script>
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Quiz</title>
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    background: #f5f5f5;
+}
+
+.appbar {
+    background: #6200ea;
+    color: white;
+    padding: 16px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.container {
+    max-width: 500px;
+    margin: auto;
+    padding: 16px;
+}
+
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.field {
+    margin-top: 12px;
+}
+
+.field label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.field input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+select, button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 8px;
+}
+
+button {
+    background: #6200ea;
+    color: white;
+    border: none;
+}
+
+.question-box {
+    font-size: 32px;
+    text-align: center;
+    padding: 20px;
+    background: #eef2ff;
+    border-radius: 12px;
+}
+
+.timer {
+    text-align: center;
+    color: red;
+    font-size: 18px;
+}
+
+.hidden { display:none; }
+</style>
+</head>
+
+<body>
+
+<div class="appbar" id="title"></div>
+
+<div class="container">
+
+<div id="setup" class="card">
+
+<div class="field">
+<label id="nameLabel"></label>
+<input id="name">
+</div>
+
+<select id="language" onchange="updateLanguage()">
+<option value="ms">Bahasa Melayu</option>
+<option value="en">English</option>
+<option value="ta">Tamil</option>
+<option value="zh">Chinese</option>
+</select>
+
+<select id="level"></select>
+
+<button onclick="startQuiz()" id="startBtn"></button>
+
+</div>
+
+<div id="quiz" class="card hidden">
+
+<div class="question-box" id="question"></div>
+
+<div class="timer" id="timer"></div>
+
+<div class="field">
+<label id="answerLabel"></label>
+<input id="answer" type="number">
+</div>
+
+<button onclick="submitAnswer()" id="submitBtn"></button>
+
+</div>
+
+<div id="result" class="card hidden">
+<h2 id="scoreText"></h2>
+<button onclick="location.reload()" id="restartBtn"></button>
+</div>
+
+</div>
+
+<script>
+let lang="ms";
+let questions=[],current=0,score=0;
+let timerInterval,timeLeft,levelSelected;
+
+/* LANGUAGE TEXT */
+const text={
+ms:{
+title:"Kuiz Matematik",
+name:"Nama",
+start:"Mula",
+submit:"Hantar",
+restart:"Mula Semula",
+answer:"Jawapan",
+score:"Markah",
+levels:["Mudah","Sederhana","Tinggi"]
+},
+en:{
+title:"Math Quiz",
+name:"Name",
+start:"Start",
+submit:"Submit",
+restart:"Restart",
+answer:"Answer",
+score:"Score",
+levels:["Easy","Medium","Hard"]
+},
+ta:{
+title:"கணித வினாடி வினா",
+name:"பெயர்",
+start:"தொடங்கு",
+submit:"சமர்ப்பிக்க",
+restart:"மீண்டும்",
+answer:"பதில்",
+score:"மதிப்பெண்",
+levels:["எளிது","நடுத்தரம்","கடினம்"]
+},
+zh:{
+title:"数学测验",
+name:"姓名",
+start:"开始",
+submit:"提交",
+restart:"重新开始",
+answer:"答案",
+score:"分数",
+levels:["简单","中等","困难"]
+}
+};
+
+/* UPDATE LANGUAGE */
+function updateLanguage(){
+lang=document.getElementById("language").value;
+let t=text[lang];
+
+title.innerText=t.title;
+nameLabel.innerText=t.name;
+startBtn.innerText=t.start;
+submitBtn.innerText=t.submit;
+restartBtn.innerText=t.restart;
+answerLabel.innerText=t.answer;
+
+/* LEVEL */
+level.innerHTML="";
+["easy","medium","hard"].forEach((v,i)=>{
+let opt=document.createElement("option");
+opt.value=v;
+opt.text=t.levels[i];
+level.appendChild(opt);
+});
+}
+
+/* TIMER */
+function getTime(level){
+if(level==="easy") return 10;
+if(level==="medium") return 30;
+if(level==="hard") return 45;
+}
+
+/* GENERATE QUESTION */
+function generateQuestion(){
+let a=Math.floor(Math.random()*20)+1;
+let b=Math.floor(Math.random()*20)+1;
+
+let symbol="➕";
+
+return {q:`${a} ${symbol} ${b}`,a:a+b};
+}
+
+/* START */
+function startQuiz(){
+let name=document.getElementById("name").value;
+levelSelected=document.getElementById("level").value;
+
+if(!name) return alert(text[lang].name);
+
+questions=[];
+for(let i=0;i<10;i++) questions.push(generateQuestion());
+
+current=0;
+score=0;
+
+setup.classList.add("hidden");
+quiz.classList.remove("hidden");
+
+startTimer();
+showQuestion();
+}
+
+/* TIMER */
+function startTimer(){
+clearInterval(timerInterval);
+
+timeLeft=getTime(levelSelected);
+
+timerInterval=setInterval(()=>{
+timer.innerText="⏱ "+timeLeft+"s";
+timeLeft--;
+
+if(timeLeft<0){
+clearInterval(timerInterval);
+nextQuestion();
+}
+},1000);
+}
+
+/* NEXT */
+function nextQuestion(){
+current++;
+if(current<10){
+startTimer();
+showQuestion();
+}else{
+endQuiz();
+}
+}
+
+/* SHOW */
+function showQuestion(){
+answer.value="";
+question.innerText=questions[current].q;
+}
+
+/* SUBMIT */
+function submitAnswer(){
+let ans=parseInt(answer.value);
+if(ans===questions[current].a) score++;
+
+clearInterval(timerInterval);
+nextQuestion();
+}
+
+/* END */
+function endQuiz(){async function endQuiz() {
+    quiz.classList.add("hidden");
+    result.classList.remove("hidden");
+    scoreText.innerText = "Saving score...";
+
+    const SCRIPT_URL = "PASTE_YOUR_URL_HERE"; // Paste the URL from Step 4 here
+
+    const payload = {
+        name: document.getElementById("name").value,
+        score: score,
+        level: levelSelected
+    };
+
+    try {
+        await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify(payload)
+        });
+        scoreText.innerText = text[lang].score + ": " + score + "/10 (Saved!)";
+    } catch (e) {
+        scoreText.innerText = text[lang].score + ": " + score + "/10 (Offline)";
+    }
+}
+quiz.classList.add("hidden");
+result.classList.remove("hidden");
+
+scoreText.innerText=text[lang].score+": "+score+"/10";
+}
+
+updateLanguage();
+</script>
+
+</body>
+</html>
